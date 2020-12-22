@@ -1,19 +1,19 @@
-﻿using Android.App;
-using Android.OS;
-using Android.Support.V7.App;
-using Android.Runtime;
-using Android.Widget;
-using System;
-using Android.Content;
-using Android.Graphics;
-using Android.Gms.Vision.Faces;
-using Android.Gms.Vision;
-using Android.Util;
-using Android.Provider;
-using AndroidX.Core.App;
-using Android;
+﻿using System;
 using System.IO;
-using AndroidX.Core.Content;
+using Android;
+using Android.App;
+using Android.Content;
+using Android.Gms.Vision;
+using Android.Gms.Vision.Faces;
+using Android.Graphics;
+using Android.OS;
+using Android.Provider;
+using Android.Runtime;
+using Android.Support.V4.Content;
+using Android.Support.V7.App;
+using Android.Util;
+using Android.Widget;
+using AndroidX.Core.App;
 
 namespace FaceRecognition
 {
@@ -28,14 +28,14 @@ namespace FaceRecognition
         TextView txtDescription;
         private Android.Net.Uri imageUri;
 
-
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.activity_main);
-            GetPermissions();
+
+
             detector = new FaceDetector.Builder(this)
                 .SetTrackingEnabled(false)
                 .SetLandmarkType(LandmarkDetectionType.All)
@@ -44,6 +44,7 @@ namespace FaceRecognition
 
 
             _imageView = FindViewById<ImageView>(Resource.Id.imageviewface);
+
             Button btngalery = FindViewById<Button>(Resource.Id.btngalery);
             btngalery.Click += Btngalery_Click;
 
@@ -51,25 +52,12 @@ namespace FaceRecognition
             btncamera.Click += Btncamera_Click;
 
             txtDescription = FindViewById<TextView>(Resource.Id.txtDescription);
+
+            GetPermissions();
         }
 
-        private void GetPermissions()
-        {
-            try
-            {
-                ActivityCompat.RequestPermissions(this, new string[]
-                {
-                    Manifest.Permission.Camera,
-                    Manifest.Permission.ReadExternalStorage,
-                    Manifest.Permission.WriteExternalStorage,
-                }, 0);
-            }
-            catch
-            {
 
-            }
-        }
-
+        //event take image galery 
         private void Btngalery_Click(object sender, EventArgs e)
         {
             Intent = new Intent();
@@ -78,6 +66,7 @@ namespace FaceRecognition
             StartActivityForResult(Intent.CreateChooser(Intent, "Select Picture"), PICK_IMAGE_GALERY);
         }
 
+        //event take photo camera
         private void Btncamera_Click(object sender, EventArgs e)
         {
             Intent takePictureIntent = new Intent(MediaStore.ActionImageCapture);
@@ -108,6 +97,23 @@ namespace FaceRecognition
             StartActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
         }
 
+        private void GetPermissions()
+        {
+            try
+            {
+                ActivityCompat.RequestPermissions(this, new string[]
+                {
+                    Manifest.Permission.Camera,
+                    Manifest.Permission.ReadExternalStorage,
+                    Manifest.Permission.WriteExternalStorage,
+                }, 0);
+            }
+            catch
+            {
+
+            }
+        }
+
         protected override void OnDestroy()
         {
             base.OnDestroy();
@@ -119,7 +125,6 @@ namespace FaceRecognition
             if ((requestCode == PICK_IMAGE_GALERY) && (resultCode == Result.Ok) && (data != null))
             {
                 imageUri = data.Data;
-                LaunchMediaScanIntent();
                 try
                 {
                     ProcessCameraPicture();
@@ -132,9 +137,8 @@ namespace FaceRecognition
 
             if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == Result.Ok)
             {
-                if(imageUri != null)
+                if (imageUri != null)
                 {
-                    LaunchMediaScanIntent();
                     try
                     {
                         ProcessCameraPicture();
@@ -145,13 +149,6 @@ namespace FaceRecognition
                     }
                 }
             }
-        }
-
-        private void LaunchMediaScanIntent()
-        {
-            Intent mediaScanIntent = new Intent(Intent.ActionMediaScannerScanFile);
-            mediaScanIntent.SetData(imageUri);
-            this.SendBroadcast(mediaScanIntent);
         }
 
         private void ProcessCameraPicture()
@@ -171,16 +168,16 @@ namespace FaceRecognition
                 Canvas canvas = new Canvas(editedBitmap);
                 canvas.DrawBitmap(bitmap, 0, 0, paint);
                 Frame frame = new Frame.Builder().SetBitmap(editedBitmap).Build();
-                SparseArray faces = detector.Detect(frame);               
+                SparseArray faces = detector.Detect(frame);
                 string text = "";
                 for (int index = 0; index < faces.Size(); ++index)
                 {
                     Face face = faces.ValueAt(index) as Face;
-                    //canvas.DrawRect(
-                    //        face.Position.X,
-                    //                face.Position.Y,
-                    //                face.Position.X + face.Width,
-                    //                face.Position.Y + face.Height, paint); //CREA EL RECUADRO
+                    canvas.DrawRect(
+                            face.Position.X,
+                                    face.Position.Y,
+                                    face.Position.X + face.Width,
+                                    face.Position.Y + face.Height, paint); //CREA EL RECUADRO
                     text += "Cara " + (index + 1) + "\n";
                     text += "Probilidad de una sonrisa:" + " " + face.IsSmilingProbability * 100 + "\n";
                     text += "Probilidad que el ojo izquierdo este abierto : " + " " + face.IsLeftEyeOpenProbability * 100 + "\n";
@@ -189,10 +186,9 @@ namespace FaceRecognition
                     {
                         int cx = (int)(landmark.Position.X);
                         int cy = (int)(landmark.Position.Y);
-                        //canvas.DrawCircle(cx, cy, 8, paint); // CREA EL CIRCULO
+                        canvas.DrawCircle(cx, cy, 8, paint); // CREA EL CIRCULO
                     }
                 }
-
                 if (faces.Size() == 0)
                 {
                     txtDescription.Text = "Scaneo fallido";
@@ -227,6 +223,7 @@ namespace FaceRecognition
             return BitmapFactory.DecodeStream(ctx.ContentResolver
                     .OpenInputStream(uri), null, bmOptions);
         }
+
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Android.Content.PM.Permission[] grantResults)
         {
